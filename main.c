@@ -9,8 +9,21 @@
 #include <stdbool.h>
 
 #define INITIAL_PROG_COUNTER (0x200)
+#define COMMANDS_SIZE (2)
+
+typedef enum command {
+    DISAS,
+    INTERPRET,
+    UNKNOWN
+} command_t;
 
 void disas(const uint8_t *buf, size_t pc, bool debug);
+
+static const char *commands[COMMANDS_SIZE + 1] = {
+        "disas",
+        "interpret",
+        NULL
+};
 
 static char *read_file_buffaddr(const char *filepath, int bufaddr, size_t *progsize)
 {
@@ -48,22 +61,27 @@ static char *read_file_buffaddr(const char *filepath, int bufaddr, size_t *progs
     return buf;
 }
 
-
-int main(int ac, const char **av)
+static int usage(const char *prog_name, bool is_error)
 {
-    if (ac < 2) {
-        dprintf(2, "Usage : %s program.ch8\n", *av);
-        return 1;
-    }
+    int fd = is_error + 1;
 
-    bool debug = ac > 2 && !strcmp(av[2], "--debug");
+    dprintf(fd, \
+        "USAGE\n"
+        "\t%s disas|interpret file.ch8 [--debug]\n"
+    , prog_name);
 
-    size_t progsize;
-    uint8_t *buf = (uint8_t *)read_file_buffaddr(av[1], INITIAL_PROG_COUNTER, &progsize);
-    if (!buf)
-        return 1;
+    return is_error;
+}
 
+static int disassemble(int ac, const char **av)
+{
+    bool debug = ac > 1 && !strcmp(av[1], "--debug");
+    size_t progsize = 0;
+    uint8_t *buf = NULL;
     size_t pc = INITIAL_PROG_COUNTER;
+
+    if (!(buf = (uint8_t *)read_file_buffaddr(*av, INITIAL_PROG_COUNTER, &progsize)))
+        return 1;
 
     while (pc < progsize) {
         disas(buf, pc, debug);
@@ -73,4 +91,39 @@ int main(int ac, const char **av)
     free(buf);
 
     return 0;
+}
+
+static int interpret(int ac, const char **av)
+{
+    (void)ac;
+    (void)av;
+
+    printf("Interpreter is in development...\n");
+    return 0;
+}
+
+int main(int ac, const char **av)
+{
+    command_t cmd = UNKNOWN;
+
+    if (ac < 3)
+        return usage(*av, true);
+
+    const char *str_cmd = av[1];
+
+    for (int i = 0; commands[i]; i++) {
+        if (!strcmp(str_cmd, commands[i])) {
+            cmd = i;
+            break;
+        }
+    }
+
+    switch (cmd) {
+        case DISAS:
+            return disassemble(ac - 2, av + 2);
+        case INTERPRET:
+            return interpret(ac - 2, av + 2);
+        default:
+            return usage(*av, true);
+    }
 }
