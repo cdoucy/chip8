@@ -1,14 +1,18 @@
-NAME	=	chip8
+NAME		=	chip8
 
-SRC		=	main.c disas.c
+SRC			=	src/main.c		\
+				src/disas.c		\
+				src/op_codes.c
 
-CC		=	gcc
+CC			=	gcc
 
-OBJ		=	$(SRC:.c=.o)
+OBJ			=	$(SRC:.c=.o)
 
-CFLAGS	=	-Wall -Wextra
+CFLAGS		=	-Wall -Wextra
 
-RM		=	rm -f
+CPPFLAGS	=	-I./inc
+
+RM			=	rm -f
 
 all:	$(NAME)
 
