@@ -64,40 +64,34 @@ static void print_debug(instruction_t ins) {
     printf("\n============================================================================\n\n");
 }
 
-static void decode_instruction(const uint8_t *buf, size_t pc, instruction_t *instruction)
+static void decode_instruction(const uint8_t *buf, size_t pc, instruction_t *i)
 {
+    if (!i)
+        return;
+
     // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
 
     // All instructions are 2 bytes long and are stored most-significant-byte first.
-    uint16_t op_code = (uint16_t)buf[pc] << 8 | (uint16_t)buf[pc + 1];
+    i->op_code = (uint16_t)buf[pc] << 8 | (uint16_t)buf[pc + 1];
 
     // u - A 4-bit value, the highest 4 bits of the instruction
-    uint8_t u = (uint8_t)(op_code >> 12);
+    i->u = (uint8_t)(i->op_code >> 12);
 
     // nnn or addr - A 12-bit value, the lowest 12 bits of the instruction
-    uint16_t nnn = op_code << 4;
+    i->nnn = i->op_code << 4;
+    i->nnn >>= 4;
 
     // n or nibble - A 4-bit value, the lowest 4 bits of the instruction
-    uint8_t n = op_code & 0xf;
+    i->n = i->op_code & 0xf;
 
     // x - A 4-bit value, the lower 4 bits of the high byte of the instruction
-    uint8_t x = (op_code >> 8) & 0xf;
+    i->x = (i->op_code >> 8) & 0xf;
 
     // y - A 4-bit value, the upper 4 bits of the low byte of the instruction
-    uint8_t y = (op_code >> 4) & 0xf;
+    i->y = (i->op_code >> 4) & 0xf;
 
     // kk or byte - An 8-bit value, the lowest 8 bits of the instruction
-    uint8_t kk = op_code & 0xff;
-
-    nnn >>= 4;
-
-    instruction->op_code = op_code;
-    instruction->u = u;
-    instruction->nnn = nnn;
-    instruction->n = n;
-    instruction->x = x;
-    instruction->y = y;
-    instruction->kk = kk;
+    i->kk = i->op_code & 0xff;
 }
 
 void disas(const uint8_t *buf, size_t pc, bool debug)
