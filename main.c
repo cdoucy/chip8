@@ -49,6 +49,7 @@ static char *read_file_buffaddr(const char *filepath, int bufaddr, size_t *progs
     }
 
     if (read(fd, buf + bufaddr, statbuf.st_size) == -1) {
+        free(buf);
         dprintf(2, "read syscall failed : %s\n", strerror(errno));
         return NULL;
     }
