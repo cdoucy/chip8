@@ -110,10 +110,15 @@ void disas(const uint8_t *buf, size_t pc, bool debug)
 
     switch (ins.u) {
         case 0x0:
+
             switch (ins.kk) {
+
+                // CLEAR - Clear the display
                 case 0xe0:
                     instruction_str = "CLEAR";
                     break;
+
+                // RET - Return from a subroutine
                 case 0xee:
                     instruction_str = "RET";
                     break;
@@ -121,105 +126,153 @@ void disas(const uint8_t *buf, size_t pc, bool debug)
                     break;
             }
             break;
+
+        // JMP nnn - Jump to location nnn
         case 0x1:
             instruction_str = "JMP";
             sprintf(args, "%03x", ins.nnn);
             break;
+
+        // CALL nnn - Call subroutine at nnn
         case 0x2:
             instruction_str = "CALL";
             sprintf(args, "%03x", ins.nnn);
             break;
+
+        // SKIP x, kk - Skip next instruction if Vx = kk
         case 0x3:
             instruction_str = "SKIP";
-            sprintf(args, "%01x, %02x", ins.x, ins.kk);
+            sprintf(args, "v%01x, %02x", ins.x, ins.kk);
             break;
+
+        // SKIPN x, kk - Skip next instruction if Vx != kk
         case 0x4:
             instruction_str = "SKIPN";
-            sprintf(args, "%01x, %02x", ins.x, ins.kk);
+            sprintf(args, "v%01x, %02x", ins.x, ins.kk);
             break;
+
+        // SKIP x, y - Skip next instruction if Vx = Vy
         case 0x5:
-            instruction_str = "SKIPX";
-            sprintf(args, "%01x, %01x", ins.x, ins.y);
+            instruction_str = "SKIP";
+            sprintf(args, "v%01x, v%01x", ins.x, ins.y);
             break;
+
+        // MVI x, kk - Set Vx = kk
         case 0x6:
             instruction_str = "MVI";
-            sprintf(args, "%01x, %02x", ins.x, ins.kk);
+            sprintf(args, "v%01x, %02x", ins.x, ins.kk);
             break;
+
+        // ADD x, kk - Set Vx = Vx + kk
         case 0x7:
             instruction_str = "ADD";
-            sprintf(args, "%01x, %02x", ins.x, ins.kk);
+            sprintf(args, "v%01x, %02x", ins.x, ins.kk);
             break;
+
         case 0x8:
             switch (ins.n) {
+
+                // MOV x, y - Set Vx = Vy
                 case 0x0:
                     instruction_str = "MOV";
-                    sprintf(args, "%01x, %01x", ins.x, ins.y);
+                    sprintf(args, "v%01x, v%01x", ins.x, ins.y);
                     break;
+
+                // OR x, y - Set Vx = Vx OR Vy
                 case 0x1:
                     instruction_str = "OR";
-                    sprintf(args, "%01x, %01x", ins.x, ins.y);
+                    sprintf(args, "v%01x, v%01x", ins.x, ins.y);
                     break;
+
+
+                // AND x, y - Set Vx = Vx AND Vy
                 case 0x2:
                     instruction_str = "AND";
-                    sprintf(args, "%01x, %01x", ins.x, ins.y);
+                    sprintf(args, "v%01x, v%01x", ins.x, ins.y);
                     break;
+
+                // XOR x, y - Set Vx = Vx XOR Vy
                 case 0x3:
                     instruction_str = "XOR";
-                    sprintf(args, "%01x, %01x", ins.x, ins.y);
+                    sprintf(args, "v%01x, v%01x", ins.x, ins.y);
                     break;
+
+                // ADD x, y - Set Vx = Vx + Vy, set Vf = carry
                 case 0x4:
                     instruction_str = "ADD";
-                    sprintf(args, "%01x, %01x", ins.x, ins.y);
+                    sprintf(args, "v%01x, v%01x", ins.x, ins.y);
                     break;
+
+                // SUB x, y - Set Vx = Vx - Vy, set VF = not borrow
                 case 0x5:
                     instruction_str = "SUB";
-                    sprintf(args, "%01x, %01x", ins.x, ins.y);
+                    sprintf(args, "v%01x, v%01x", ins.x, ins.y);
                     break;
+
+                // SHR x, y - Set Vx = Vx SHR 1
                 case 0x6:
                     instruction_str = "SHR";
-                    sprintf(args, "%01x, %01x", ins.x, ins.y);
+                    sprintf(args, "v%01x, v%01x", ins.x, ins.y);
                     break;
+
+                // SUBN x, y - Set Vx = Vy - Vx, set VF = NOT borrow
                 case 0x7:
                     instruction_str = "SUBN";
-                    sprintf(args, "%01x, %01x", ins.x, ins.y);
+                    sprintf(args, "v%01x, v%01x", ins.x, ins.y);
                     break;
+
+                // SHL - Set Vx = Vx SHL 1
                 case 0xe:
                     instruction_str = "SHL";
-                    sprintf(args, "%01x, %01x", ins.x, ins.y);
+                    sprintf(args, "v%01x, v%01x", ins.x, ins.y);
                     break;
                 default:
                     break;
             }
             break;
+
+        // SKIPN x, y - Skip next instruction if Vx != Vy
         case 0x9:
             instruction_str = "SKIPN";
-            sprintf(args, "%01x, %01x", ins.x, ins.y);
+            sprintf(args, "v%01x, v%01x", ins.x, ins.y);
             break;
+
+        // MVI I, nnn - Set I = nnn
         case 0xa:
             instruction_str = "MVI";
-            sprintf(args, "%03x", ins.nnn);
+            sprintf(args, "I, %03x", ins.nnn);
             break;
+
+        // JMP V0, nnn - Jump to location nnn + V0
         case 0xb:
             instruction_str = "JMP";
-            sprintf(args, "%03x", ins.nnn);
+            sprintf(args, "V0, %03x", ins.nnn);
             break;
+
+        // RAND x, kk - Set Vx = random byte AND kk
         case 0xc:
             instruction_str = "RAND";
-            sprintf(args, "%01x, %02x", ins.x, ins.kk);
+            sprintf(args, "v%01x, %02x", ins.x, ins.kk);
             break;
+
+        // DISP x, y, n - Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision
         case 0xd:
             instruction_str = "DISP";
-            sprintf(args, "%01x, %01x, %01x", ins.x, ins.y, ins.n);
+            sprintf(args, "v%01x, v%01x, %01x", ins.x, ins.y, ins.n);
             break;
         case 0xe:
             switch (ins.kk) {
+
+                // SKIPKEY x - Skip next instruction if key with the value of Vx is pressed
                 case 0x9e:
                     instruction_str = "SKIPKEY";
-                    sprintf(args, "%01x", ins.x);
+                    sprintf(args, "v%01x", ins.x);
                     break;
+
+                // SKIPNKEY x - Skip next instruction if key with the value of Vx is not pressed
                 case 0xA1:
                     instruction_str = "SKIPNKEY";
-                    sprintf(args, "%01x", ins.x);
+                    sprintf(args, "v%01x", ins.x);
                     break;
                 default:
                     break;
@@ -227,39 +280,59 @@ void disas(const uint8_t *buf, size_t pc, bool debug)
             break;
         case 0xf:
             switch (ins.kk) {
+
+                // MOV x, DELAY - Set Vx = delay timer value
                 case 0x07:
-                    instruction_str = "GET_DELAY";
-                    sprintf(args, "%01x", ins.x);
+                    instruction_str = "MOV";
+                    sprintf(args, "v%01x, DELAY", ins.x);
                     break;
+
+                // MOV X, KEY - Wait for a key press, store the value of key in Vx
                 case 0x0a:
-                    instruction_str = "KEY";
-                    sprintf(args, "%01x", ins.x);
+                    instruction_str = "MOV";
+                    sprintf(args, "v%01x, KEY", ins.x);
                     break;
+
+                // MOV DELAY, Vx - Set delay timer = Vx
                 case 0x15:
-                    instruction_str = "SET_DELAY";
-                    sprintf(args, "%01x", ins.x);
+                    instruction_str = "MOV";
+                    sprintf(args, "DELAY, v%01x", ins.x);
                     break;
+
+                // MOV SOUND, Vx - Set sound timer = Vx
                 case 0x18:
-                    instruction_str = "SET_SOUND";
-                    sprintf(args, "%01x", ins.x);
+                    instruction_str = "MOV";
+                    sprintf(args, "SOUND, v%01x", ins.x);
                     break;
+
+                // ADD I, x - Set I = I + Vx
                 case 0x1e:
-                    instruction_str = "ADI";
-                    sprintf(args, "%01x", ins.x);
+                    instruction_str = "ADD";
+                    sprintf(args, "I, v%01x", ins.x);
                     break;
+
+                // GET_SPRITE_POS - Set I = location of sprite for digit Vx
                 case 0x29:
                     instruction_str = "GET_SPRITE_POS";
-                    sprintf(args, "%01x", ins.x);
+                    sprintf(args, "I, v%01x", ins.x);
                     break;
+
+                // MOVEBCD x - Store BCD representation of Vx in memory locations I, I+1, and I+2
                 case 0x33:
                     instruction_str = "MOVBCD";
-                    sprintf(args, "%01x", ins.x);
+                    sprintf(args, "(I), v%01x", ins.x);
                     break;
-                case 0x55:
-                case 0x65:
 
+                // MOVM I, x - Store registers V0 through Vx in memory starting at location I
+                case 0x55:
                     instruction_str = "MOVM";
-                    sprintf(args, "%01x", ins.x);
+                    sprintf(args, "I, v%01x", ins.x);
+                    break;
+
+                // MOVM x, I - Read registers V0 through Vx from memory starting at location I
+                case 0x65:
+                    instruction_str = "MOVM";
+                    sprintf(args, "v%01x, I", ins.x);
                     break;
                 default:
                     break;
