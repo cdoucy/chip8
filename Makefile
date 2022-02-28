@@ -1,8 +1,11 @@
 NAME		=	chip8
 
-SRC			=	src/main.c		\
-				src/disas.c		\
-				src/op_codes.c
+SRC			=	src/main.c						\
+				src/disas.c						\
+				src/op_codes.c					\
+				src/chip8_engine.c				\
+				src/utils.c						\
+				src/instructions_executors.c
 
 CC			=	gcc
 
@@ -29,4 +32,7 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all clean fclean re build
+debug: CPPFLAGS += -g3
+debug: re
+
+.PHONY: all clean fclean re build debug

@@ -1,14 +1,11 @@
 #include <stdio.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <fcntl.h>
-#include <stdbool.h>
 
-#define INITIAL_PROG_COUNTER (0x200)
+#include "disas.h"
+#include "utils.h"
+#include "chip8_engine.h"
+
 #define COMMANDS_SIZE (2)
 
 typedef enum command {
@@ -17,50 +14,11 @@ typedef enum command {
     UNKNOWN
 } command_t;
 
-void disas(const uint8_t *buf, size_t pc, bool debug);
-
 static const char *commands[COMMANDS_SIZE + 1] = {
         "disas",
         "interpret",
         NULL
 };
-
-static char *read_file_buffaddr(const char *filepath, int bufaddr, size_t *progsize)
-{
-    struct stat statbuf;
-    int fd;
-    char *buf;
-
-    if (stat(filepath, &statbuf) != 0) {
-        dprintf(2, "stat syscall failed : %s\n", strerror(errno));
-        return NULL;
-    }
-
-    fd = open(filepath, O_RDONLY);
-    if (fd == -1) {
-        dprintf(2, "open syscall failed : %s\n", strerror(errno));
-        return NULL;
-    }
-
-    buf = malloc(sizeof(char) * (statbuf.st_size + bufaddr));
-    if (!buf) {
-        dprintf(2, "malloc failed");
-        return NULL;
-    }
-
-    if (read(fd, buf + bufaddr, statbuf.st_size) == -1) {
-        free(buf);
-        dprintf(2, "read syscall failed : %s\n", strerror(errno));
-        return NULL;
-    }
-
-    close(fd);
-
-    if (progsize)
-        *progsize = statbuf.st_size + bufaddr;
-
-    return buf;
-}
 
 static int usage(const char *prog_name, bool is_error)
 {
@@ -79,15 +37,14 @@ static int disassemble(int ac, const char **av)
     bool debug = ac > 1 && !strcmp(av[1], "--debug");
     size_t progsize = 0;
     uint8_t *buf = NULL;
-    size_t pc = INITIAL_PROG_COUNTER;
+    uint16_t pc = INITIAL_PROGRAM_COUNTER;
 
-    if (!(buf = (uint8_t *)read_file_buffaddr(*av, INITIAL_PROG_COUNTER, &progsize)))
+    if (!(buf = read_file_offset(*av, INITIAL_PROGRAM_COUNTER, &progsize, MAX_PROG_SIZE)))
         return 1;
 
-    while (pc < progsize) {
-        disas(buf, pc, debug);
-        pc += 2;
-    }
+
+    for (; (size_t)pc < progsize; pc += 2)
+        disas(buf, pc , debug);
 
     free(buf);
 
@@ -96,10 +53,17 @@ static int disassemble(int ac, const char **av)
 
 static int interpret(int ac, const char **av)
 {
-    (void)ac;
-    (void)av;
+    chip8_engine_t engine;
+    bool error = false;
 
-    printf("Interpreter is in development...\n");
+    init_chip8_engine(&engine);
+    error = load_file_to_memory(*av, engine.memory + INITIAL_PROGRAM_COUNTER, &engine.prog_size, MAX_PROG_SIZE);
+
+    if (error)
+        return 1;
+
+    run_chip8_engine(&engine);
+
     return 0;
 }
 

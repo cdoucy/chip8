@@ -199,7 +199,7 @@ static void (*const params_functions[OP_CODES_SIZE])(const instruction_t *, char
     &no_param
 };
 
-void disas(const uint8_t *buf, size_t pc, bool debug)
+void disas(const uint8_t *buf, uint16_t pc, bool debug)
 {
     char instruction_params[BUF_SIZE] = {'\0'};
     instruction_t instruction;
@@ -208,7 +208,7 @@ void disas(const uint8_t *buf, size_t pc, bool debug)
     params_functions[instruction.op_code](&instruction, instruction_params);
 
     printf(
-        "%04zx %04x %s %s\n",
+        "%04hx %04x %s %s\n",
         pc,
         instruction.instruction,
         op_codes_strings[instruction.op_code],
