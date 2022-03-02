@@ -1,10 +1,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
+#include <SDL2/SDL.h>
 
 #include "disas.h"
 #include "utils.h"
 #include "chip8_engine.h"
+
+#define WINDOW_SCALE 12
+
+#define WINDOW_WIDTH    (CHIP8_WINDOW_WIDTH  *  WINDOW_SCALE)
+#define WINDOW_HEIGHT   (CHIP8_WINDOW_HEIGHT *  WINDOW_SCALE)
 
 #define COMMANDS_SIZE (2)
 
@@ -51,6 +58,37 @@ static int disassemble(int ac, const char **av)
     return 0;
 }
 
+static void draw_points(SDL_Renderer *renderer, int x, int y, int scale)
+{
+    int x_scale = x * scale;
+    int y_scale = y * scale;
+
+    for (int i = y_scale - scale; i < y_scale; i++)
+        for (int j = x_scale - scale; j < x_scale; j++)
+            SDL_RenderDrawPoint(renderer, j, i);
+}
+
+static void update_window(chip8_engine_t *engine, SDL_Renderer *renderer, int scale)
+{
+    update_chip8_engine(engine);
+
+    SDL_RenderClear(renderer);
+
+    SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
+
+    for (uint8_t i = 0; i < CHIP8_WINDOW_HEIGHT; i++) {
+        for (uint8_t j = 0; j < CHIP8_WINDOW_WIDTH; j++) {
+            if (!(engine->screen[i] >> j & 1))
+                continue;
+
+            draw_points(renderer, j, i, scale);
+        }
+    }
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
+    SDL_RenderPresent(renderer);
+}
+
 static int interpret(int ac, const char **av)
 {
     chip8_engine_t engine;
@@ -62,7 +100,33 @@ static int interpret(int ac, const char **av)
     if (error)
         return 1;
 
-    run_chip8_engine(&engine);
+    srandom(time(NULL));
+
+    SDL_Event event;
+    SDL_Renderer *renderer;
+    SDL_Window *window;
+
+    if (SDL_Init(SDL_INIT_VIDEO))
+        return 1;
+
+    if (SDL_CreateWindowAndRenderer(WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer))
+        return 1;
+
+    bool running = true;
+
+    while (running) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = false;
+                break;
+            }
+        }
+        update_window(&engine, renderer, WINDOW_SCALE);
+    }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 
     return 0;
 }

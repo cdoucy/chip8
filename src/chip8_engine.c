@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "chip8_engine.h"
 #include "op_codes.h"
@@ -48,14 +49,22 @@ void init_chip8_engine(chip8_engine_t *engine)
     engine->pc = INITIAL_PROGRAM_COUNTER;
 }
 
+void update_chip8_engine(chip8_engine_t *e)
+{
+    instruction_t i;
+
+    read_next_instruction(e->memory, e->pc, &i);
+
+    printf("%04x %s\n", e->pc, op_codes_strings[i.op_code]);
+
+    instructions_executors[i.op_code](e, &i);
+}
+
 void run_chip8_engine(chip8_engine_t *e)
 {
     instruction_t i;
     uint16_t prog_end = e->prog_size + e->pc;
 
-    for (; e->pc < prog_end && e->pc < MEMORY_SIZE; e->pc += 2) {
-        read_next_instruction(e->memory, e->pc, &i);
-        instructions_executors[i.op_code](e, &i);
-
-    }
+    for (; e->pc < prog_end && e->pc < MEMORY_SIZE;)
+        update_chip8_engine(e);
 }

@@ -15,12 +15,14 @@ CFLAGS		=	-Wall -Wextra
 
 CPPFLAGS	=	-I./inc
 
+LIBFLAGS	=	-lSDL2
+
 RM			=	rm -f
 
 all:	$(NAME)
 
 $(NAME):	$(OBJ)
-	$(CC) -o $(NAME) $(OBJ)
+	$(CC) -o $(NAME) $(OBJ) $(LIBFLAGS)
 
 build: all
 

@@ -2,6 +2,9 @@
 
 #include <stdint.h>
 
+#define CHIP8_WINDOW_WIDTH    64
+#define CHIP8_WINDOW_HEIGHT   32
+
 #define MEMORY_SIZE                 4096
 #define V_REGISTERS_SIZE            16
 #define STACK_SIZE                  16
@@ -29,7 +32,10 @@ struct chip8_engine_s {
     uint16_t pc;
     // Size of loaded program
     uint16_t prog_size;
+    // 64 * 32 monochrome pixels, stored in bits
+    uint64_t screen[CHIP8_WINDOW_HEIGHT];
 };
 
 void init_chip8_engine(chip8_engine_t *engine);
+void update_chip8_engine(chip8_engine_t *e);
 void run_chip8_engine(chip8_engine_t *engine);

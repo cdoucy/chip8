@@ -83,3 +83,8 @@ bool load_file_to_memory(const char *filepath, uint8_t memory[], uint16_t *prog_
 
     return false;
 }
+
+uint8_t generate_random_byte()
+{
+    return (uint8_t)(random() % 256);
+}
