@@ -7,7 +7,8 @@ SRC			=	src/main.c						\
 				src/utils.c						\
 				src/instructions_executors.c	\
 				src/display_buffer.c			\
-				src/clock.c
+				src/clock.c						\
+				src/display.c
 
 CC			=	gcc
 
