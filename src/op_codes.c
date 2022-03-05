@@ -52,20 +52,19 @@ static void decode_instruction(const uint8_t *buf, size_t pc, instruction_t *i)
     i->u = (uint8_t)(i->instruction >> 12);
 
     // nnn or addr - A 12-bit value, the lowest 12 bits of the instruction
-    i->nnn = i->instruction << 4;
-    i->nnn >>= 4;
+    i->nnn = i->instruction & 0x0fff;
 
     // n or nibble - A 4-bit value, the lowest 4 bits of the instruction
-    i->n = i->instruction & 0xf;
+    i->n = i->instruction & 0x000f;
 
     // x - A 4-bit value, the lower 4 bits of the high byte of the instruction
-    i->x = (i->instruction >> 8) & 0xf;
+    i->x = (i->instruction >> 8) & 0x000f;
 
     // y - A 4-bit value, the upper 4 bits of the low byte of the instruction
-    i->y = (i->instruction >> 4) & 0xf;
+    i->y = (i->instruction >> 4) & 0x000f;
 
     // kk or byte - An 8-bit value, the lowest 8 bits of the instruction
-    i->kk = i->instruction & 0xff;
+    i->kk = i->instruction & 0x00ff;
 }
 
 void read_next_instruction(const uint8_t *buf, uint16_t pc, instruction_t *i)

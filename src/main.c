@@ -58,6 +58,8 @@ static int interpret(int ac, const char **av)
 {
     bool show_fps = false;
     bool disas = false;
+    bool dump_regs = false;
+
     chip8_engine_t engine;
     display_t display;
     display_event_t ev = {KEY_SIZE, false};
@@ -68,6 +70,8 @@ static int interpret(int ac, const char **av)
             show_fps = true;
         if (!strcmp(av[i], "--disas"))
             disas = true;
+        if (!strcmp(av[i], "--dump-regs"))
+            dump_regs = true;
     }
 
     init_chip8_engine(&engine);
@@ -79,7 +83,6 @@ static int interpret(int ac, const char **av)
     if (init_display(&display, show_fps))
         return 1;
 
-
     while (!exit_code) {
         if (!poll_event(&display, &ev))
             break;
@@ -87,6 +90,9 @@ static int interpret(int ac, const char **av)
         if (ev.key < KEY_SIZE) engine.keyboard[ev.key] = ev.key_pressed;
 
         update_chip8_engine(&engine, disas);
+
+        if (dump_regs)
+            chip8_dump_registers(&engine);
 
         exit_code = render(&display, &engine.screen);
     }

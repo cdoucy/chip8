@@ -2,8 +2,8 @@
 
 #define WINDOW_TITLE "Chip8"
 
-#define MAX_SCREEN_FPS              180
-#define MAX_SCREEN_TICKS_PER_FRAME  (1000 / MAX_SCREEN_FPS)
+#define MAX_SCREEN_FPS              200
+#define MAX_SCREEN_TICKS_PER_FRAME  ((long int)(1000000L / MAX_SCREEN_FPS))
 
 static bool sdl_error(const char *message)
 {
@@ -38,11 +38,12 @@ bool init_display(display_t *d, bool log_framerate)
     );
     if (!d->texture) return sdl_error("unable to create texture");
 
-    d->cap_clock = 0;
+
     d->frame_counter = 0;
     d->log_framerate = log_framerate;
 
-    reset_sdl_clock(&d->framerate_clock);
+    memset(&d->cap_clock, 0, sizeof(clock_t));
+    reset_clock(&d->framerate_clock);
 
     return false;
 }
@@ -85,7 +86,7 @@ bool poll_event(display_t *d, display_event_t *event)
 {
     SDL_Event ev;
 
-    reset_sdl_clock(&d->cap_clock);
+    reset_clock(&d->cap_clock);
 
     while (SDL_PollEvent(&ev)) {
         if (ev.type == SDL_QUIT)
@@ -118,7 +119,7 @@ bool render(display_t *d, display_buffer_t *buf)
 
     SDL_RenderPresent(d->renderer);
 
-    avg_fps = ((float)d->frame_counter) / (((float)get_elapsed(&d->framerate_clock)) / 1000.f);
+    avg_fps = (float)d->frame_counter / US_TO_S((float)get_elapsed(&d->framerate_clock));
 
     if (avg_fps > 2000000)
         avg_fps = 0;
@@ -130,7 +131,7 @@ bool render(display_t *d, display_buffer_t *buf)
 
     frame_ticks = get_elapsed(&d->cap_clock);
     if (frame_ticks < MAX_SCREEN_TICKS_PER_FRAME)
-        SDL_Delay(MAX_SCREEN_TICKS_PER_FRAME - frame_ticks);
+        SDL_Delay(US_TO_MS(MAX_SCREEN_TICKS_PER_FRAME - frame_ticks));
 
     return false;
 }
@@ -141,14 +142,4 @@ void destroy_display(display_t *d)
     SDL_DestroyRenderer(d->renderer);
     SDL_DestroyWindow(d->window);
     SDL_Quit();
-}
-
-void reset_sdl_clock(sdl_clock_t *clock)
-{
-    *clock = SDL_GetTicks();
-}
-
-sdl_clock_t get_elapsed(const sdl_clock_t *clock)
-{
-    return SDL_GetTicks() - (*clock);
 }

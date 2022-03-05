@@ -6,6 +6,8 @@
 #include "instructions_executors.h"
 #include "disas.h"
 
+#define MAX_TICKS_PER_CYCLE ((long int)(1000000L / FREQUENCY))
+
 static const uint8_t chip8_fontset[FONT_SIZE] =
 {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -27,40 +29,40 @@ static const uint8_t chip8_fontset[FONT_SIZE] =
 };
 
 static void (*const instructions_executors[OP_CODES_SIZE])(chip8_engine_t *, const instruction_t *) = {
-        &exec_clear,
-        &exec_ret,
-        &exec_jmp_nnn,
-        &exec_call,
-        &exec_skip_x_kk,
-        &exec_skipn_x_kk,
-        &exec_skip_x_y,
-        &exec_mvi_x_kk,
-        &exec_add_x_kk,
-        &exec_mov_x_y,
-        &exec_or,
-        &exec_and,
-        &exec_xor,
-        &exec_add_x_y,
-        &exec_sub,
-        &exec_shr,
-        &exec_subn,
-        &exec_shl,
-        &exec_skipn_x_y,
-        &exec_mvi_i_nnn,
-        &exec_jmp_v0_nnn,
-        &exec_rand,
-        &exec_disp,
-        &exec_skip_key,
-        &exec_skipn_key,
-        &exec_mov_x_delay,
-        &exec_mov_key,
-        &exec_mov_delay_x,
-        &exec_mov_sound,
-        &exec_add_i_x,
-        &exec_sprite_pos,
-        &exec_movbcd,
-        &exec_movm_i_x,
-        &exec_movm_x_i,
+        &exec_clear,        // CLEAR
+        &exec_ret,          // RET
+        &exec_jmp_nnn,      // JMP_NNN
+        &exec_call,         // CALL
+        &exec_skip_x_kk,    // SKIP_X_KK
+        &exec_skipn_x_kk,   // SKIPN_X_KK
+        &exec_skip_x_y,     // SKIP_X_Y
+        &exec_mvi_x_kk,     // MVI_X_KK
+        &exec_add_x_kk,     // ADD_X_KK
+        &exec_mov_x_y,      // MOV_X_Y
+        &exec_or,           // OR
+        &exec_and,          // AND
+        &exec_xor,          // XOR
+        &exec_add_x_y,      // ADD_X_Y
+        &exec_sub,          // SUB
+        &exec_shr,          // SHR
+        &exec_subn,         // SUBN
+        &exec_shl,          // SHL
+        &exec_skipn_x_y,    // SKIPN_X_Y
+        &exec_mvi_i_nnn,    // MVI_I_NNN
+        &exec_jmp_v0_nnn,   // JMP_V0_NNN
+        &exec_rand,         // RAND
+        &exec_disp,         // DISP
+        &exec_skip_key,     // SKIP_KEY
+        &exec_skipn_key,    // SKIPN_KEY
+        &exec_mov_x_delay,  // MOV_X_DELAY
+        &exec_mov_key,      // MOV_KEY
+        &exec_mov_delay_x,  // MOV_DELAY_X
+        &exec_mov_sound,    // MOV_SOUND
+        &exec_add_i_x,      // ADD_I_X
+        &exec_sprite_pos,   // SPRITE_POS
+        &exec_movbcd,       // MOVBCD
+        &exec_movm_i_x,     // MOVM_I_X
+        &exec_movm_x_i,     // MOVM_X_I
         &exec_unknown,
 };
 
@@ -70,11 +72,16 @@ void init_chip8_engine(chip8_engine_t *engine)
     engine->pc = INITIAL_PROGRAM_COUNTER;
     memcpy(engine->memory, chip8_fontset, FONT_SIZE * sizeof(uint8_t));
 
-    reset(&engine->clock);
+    reset_clock(&engine->clock);
 }
 
-static void check_counters(chip8_engine_t *e)
+void chip8_check_counters(chip8_engine_t *e)
 {
+    if (get_elapsed(&e->clock) < MAX_TICKS_PER_CYCLE)
+        return;
+
+    reset_clock(&e->clock);
+
     if (e->delay)
         e->delay--;
 
@@ -87,7 +94,7 @@ static void check_counters(chip8_engine_t *e)
 
 void update_chip8_engine(chip8_engine_t *e, bool disas)
 {
-    check_counters(e);
+    chip8_check_counters(e);
 
     instruction_t i;
 
@@ -105,4 +112,16 @@ void run_chip8_engine(chip8_engine_t *e)
 
     for (; e->pc < prog_end && e->pc < MEMORY_SIZE;)
         update_chip8_engine(e, false);
+}
+
+void chip8_dump_registers(const chip8_engine_t *e) {
+    for (int i = 0; i < 16; i += 4) {
+        for (int j = i; j < i + 4; j++) {
+            printf("V[%02x] = %02x  ", j, e->v[j]);
+        }
+        printf("\n");
+    }
+
+    printf("I = %04x, sp = %02x, pc = %04x\n", e->i, e->sp, e->pc);
+    printf("*********************************************************\n");
 }

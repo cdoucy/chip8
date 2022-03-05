@@ -401,7 +401,7 @@ void exec_disp(chip8_engine_t *e, const instruction_t *i)
             uint8_t sprite_pixel = pixels >> k & 1;
             uint8_t screen_pixel = get_pixel(e->screen, x_incr, y_incr);
 
-            e->v[0xf] = sprite_pixel && screen_pixel;
+            if (sprite_pixel && screen_pixel) e->v[0xf] = 1;
 
             if (sprite_pixel)
                 sprite_pixel = 0xff;

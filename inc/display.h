@@ -6,14 +6,13 @@
 
 typedef struct display_s display_t;
 typedef struct display_event_s display_event_t;
-typedef uint32_t sdl_clock_t;
 
 struct display_s {
     SDL_Window      *window;
     SDL_Renderer    *renderer;
     SDL_Texture     *texture;
-    sdl_clock_t     framerate_clock;
-    sdl_clock_t     cap_clock;
+    chip8_clock_t    framerate_clock;
+    chip8_clock_t    cap_clock;
     int             frame_counter;
     bool            log_framerate;
 };
@@ -27,6 +26,3 @@ bool init_display(display_t *display, bool log_framerate);
 bool poll_event(display_t *display, display_event_t *event);
 bool render(display_t *display, display_buffer_t *buf);
 void destroy_display(display_t *display);
-
-void reset_sdl_clock(sdl_clock_t *clock);
-sdl_clock_t get_elapsed(const sdl_clock_t *clock);

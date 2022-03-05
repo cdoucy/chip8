@@ -14,6 +14,7 @@
 #define MAX_PROG_SIZE               (MEMORY_SIZE - INITIAL_PROGRAM_COUNTER)
 #define FONT_SIZE                   80
 #define KEY_SIZE                    16
+#define FREQUENCY                   60
 
 #define WINDOW_SCALE 5
 
@@ -51,8 +52,10 @@ struct chip8_engine_s {
 };
 
 void init_chip8_engine(chip8_engine_t *engine);
+void chip8_check_counters(chip8_engine_t *e);
 void update_chip8_engine(chip8_engine_t *e, bool disas);
 void run_chip8_engine(chip8_engine_t *engine);
+void chip8_dump_registers(const chip8_engine_t *e);
 
 void clear_display_buffer(display_buffer_t buf);
 uint8_t get_pixel(display_buffer_t buf, int x, int y);
