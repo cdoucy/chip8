@@ -251,7 +251,7 @@ void exec_sub(chip8_engine_t *e, const instruction_t *i)
     if (is_v_reg_out_of_bound(i->x) || is_v_reg_out_of_bound(i->y))
         return;
 
-    e->v[0xf] = e->v[i->x] > e->v[i->y];
+    e->v[0xf] = e->v[i->x] >= e->v[i->y];
     e->v[i->x] -= e->v[i->y];
 }
 
@@ -310,7 +310,7 @@ void exec_shl(chip8_engine_t *e, const instruction_t *i)
 }
 
 /*
- * SKIP x, y
+ * SKIPN x, y
  * Skip next instruction if Vx != Vy.
  *
  * The values of Vx and Vy are compared, and if they are not equal,
@@ -535,7 +535,10 @@ void exec_add_i_x(chip8_engine_t *e, const instruction_t *i)
     if (is_v_reg_out_of_bound(i->x))
         return;
 
-    e->i += e->v[i->x];
+    uint16_t res = e->i + e->v[i->x];
+
+    e->v[0xf] = res > 0xfff;
+    e->i = res;
 }
 
 /*
@@ -593,6 +596,8 @@ void exec_movm_i_x(chip8_engine_t *e, const instruction_t *i)
 
     for (uint8_t j = 0; j <= i->x; j++)
         e->memory[e->i + j] = e->v[j];
+
+    e->i += i->x + 1;
 }
 
 /*
@@ -610,6 +615,8 @@ void exec_movm_x_i(chip8_engine_t *e, const instruction_t *i)
 
     for (uint8_t j = 0; j <= i->x; j++)
         e->v[j] = e->memory[e->i + j];
+
+    e->i += i->x + 1;
 }
 
 void exec_unknown(chip8_engine_t *e, const instruction_t *i)

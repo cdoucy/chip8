@@ -4,6 +4,7 @@
 #include "chip8_engine.h"
 #include "op_codes.h"
 #include "instructions_executors.h"
+#include "disas.h"
 
 static const uint8_t chip8_fontset[FONT_SIZE] =
 {
@@ -77,13 +78,14 @@ static void check_counters(chip8_engine_t *e)
     if (e->delay)
         e->delay--;
 
-    if (e->sound)
+    if (e->sound) {
         e->sound--;
-    else if (false)
-        printf("BEEEEEP!\n");
+        if (!e->sound)
+            printf("BEEEEEP!\n");
+    }
 }
 
-void update_chip8_engine(chip8_engine_t *e)
+void update_chip8_engine(chip8_engine_t *e, bool disas)
 {
     check_counters(e);
 
@@ -91,9 +93,8 @@ void update_chip8_engine(chip8_engine_t *e)
 
     read_next_instruction(e->memory, e->pc, &i);
 
-    printf("%04x %s\n", e->pc, op_codes_strings[i.op_code]);
-//    printf("delay = %d, sound = %d\n", e->delay, e->sound);
-//    printf("**************************************\n");
+    if (disas)
+        print_instruction(e->pc, &i);
 
     instructions_executors[i.op_code](e, &i);
 }
@@ -103,5 +104,5 @@ void run_chip8_engine(chip8_engine_t *e)
     uint16_t prog_end = e->prog_size + e->pc;
 
     for (; e->pc < prog_end && e->pc < MEMORY_SIZE;)
-        update_chip8_engine(e);
+        update_chip8_engine(e, false);
 }

@@ -12,7 +12,7 @@
 typedef enum command {
     DISAS,
     INTERPRET,
-    UNKNOWN
+    UNKNOWN_COMMAND
 } command_t;
 
 typedef uint32_t sdl_clock_t;
@@ -56,12 +56,19 @@ static int disassemble(int ac, const char **av)
 
 static int interpret(int ac, const char **av)
 {
-    (void)ac;
-
+    bool show_fps = false;
+    bool disas = false;
     chip8_engine_t engine;
     display_t display;
     display_event_t ev = {KEY_SIZE, false};
     int exit_code = 0;
+
+    for (int i = 1; i < ac; i++) {
+        if (!strcmp(av[i], "--show-fps"))
+            show_fps = true;
+        if (!strcmp(av[i], "--disas"))
+            disas = true;
+    }
 
     init_chip8_engine(&engine);
     if (load_file_to_memory(*av, engine.memory + INITIAL_PROGRAM_COUNTER, &engine.prog_size, MAX_PROG_SIZE))
@@ -69,7 +76,7 @@ static int interpret(int ac, const char **av)
 
     srandom(time(NULL));
 
-    if (init_display(&display, true))
+    if (init_display(&display, show_fps))
         return 1;
 
 
@@ -79,7 +86,7 @@ static int interpret(int ac, const char **av)
 
         if (ev.key < KEY_SIZE) engine.keyboard[ev.key] = ev.key_pressed;
 
-        update_chip8_engine(&engine);
+        update_chip8_engine(&engine, disas);
 
         exit_code = render(&display, &engine.screen);
     }
@@ -91,7 +98,7 @@ static int interpret(int ac, const char **av)
 
 int main(int ac, const char **av)
 {
-    command_t cmd = UNKNOWN;
+    command_t cmd = UNKNOWN_COMMAND;
 
     if (ac < 3)
         return usage(*av, true);

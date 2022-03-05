@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stddef.h>
 #include <stdbool.h>
 
 #include "op_codes.h"
@@ -199,21 +198,27 @@ static void (*const params_functions[OP_CODES_SIZE])(const instruction_t *, char
     &no_param
 };
 
-void disas(const uint8_t *buf, uint16_t pc, bool debug)
+void print_instruction(uint16_t pc, const instruction_t *i)
 {
     char instruction_params[BUF_SIZE] = {'\0'};
+
+    params_functions[i->op_code](i, instruction_params);
+
+    printf(
+            "%04hx %04x %s %s\n",
+            pc,
+            i->instruction,
+            op_codes_strings[i->op_code],
+            instruction_params
+    );
+}
+
+void disas(const uint8_t *buf, uint16_t pc, bool debug)
+{
     instruction_t instruction;
 
     read_next_instruction(buf, pc, &instruction);
-    params_functions[instruction.op_code](&instruction, instruction_params);
-
-    printf(
-        "%04hx %04x %s %s\n",
-        pc,
-        instruction.instruction,
-        op_codes_strings[instruction.op_code],
-        instruction_params
-    );
+    print_instruction(pc, &instruction);
 
     if (debug)
         print_debug(instruction);
