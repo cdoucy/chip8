@@ -2,7 +2,7 @@
 
 #define WINDOW_TITLE "Chip8"
 
-#define MAX_SCREEN_FPS              200
+#define MAX_SCREEN_FPS              60
 #define MAX_SCREEN_TICKS_PER_FRAME  ((long int)(1000000L / MAX_SCREEN_FPS))
 
 static bool sdl_error(const char *message)

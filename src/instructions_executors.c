@@ -16,6 +16,8 @@ void exec_clear(chip8_engine_t *e, const instruction_t *i)
 
     e->pc += 2;
     clear_display_buffer(e->screen);
+
+    e->draw_flag = true;
 }
 
 /*
@@ -409,6 +411,8 @@ void exec_disp(chip8_engine_t *e, const instruction_t *i)
             draw_pixel(e->screen, x_incr, y_incr, screen_pixel ^ sprite_pixel);
         }
     }
+
+    e->draw_flag = true;
 }
 
 /*
@@ -575,9 +579,9 @@ void exec_movbcd(chip8_engine_t *e, const instruction_t *i)
 
     uint8_t x = e->v[i->x];
 
-    e->memory[e->i]     = x / 100;
+    e->memory[e->i]     = x % 1000 / 100;
     e->memory[e->i + 1] = x % 100 / 10;
-    e->memory[e->i + 2] = x / 10;
+    e->memory[e->i + 2] = x % 10;
 }
 
 /*

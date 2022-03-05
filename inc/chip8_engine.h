@@ -16,7 +16,7 @@
 #define KEY_SIZE                    16
 #define FREQUENCY                   60
 
-#define WINDOW_SCALE 5
+#define WINDOW_SCALE 15
 
 #define WINDOW_WIDTH    (CHIP8_WINDOW_WIDTH  *  WINDOW_SCALE)
 #define WINDOW_HEIGHT   (CHIP8_WINDOW_HEIGHT *  WINDOW_SCALE)
@@ -49,6 +49,8 @@ struct chip8_engine_s {
     chip8_clock_t clock;
 
     uint8_t keyboard[KEY_SIZE];
+
+    bool draw_flag;
 };
 
 void init_chip8_engine(chip8_engine_t *engine);

@@ -94,7 +94,10 @@ static int interpret(int ac, const char **av)
         if (dump_regs)
             chip8_dump_registers(&engine);
 
-        exit_code = render(&display, &engine.screen);
+        if (engine.draw_flag) {
+            exit_code = render(&display, &engine.screen);
+            engine.draw_flag = false;
+        }
     }
 
     destroy_display(&display);
