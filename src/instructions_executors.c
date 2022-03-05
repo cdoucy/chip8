@@ -12,10 +12,10 @@ static bool is_v_reg_out_of_bound(uint8_t r)
 
 void exec_clear(chip8_engine_t *e, const instruction_t *i)
 {
-    e->pc += 2;
+    (void )i;
 
-    for (uint8_t j = 0; j < CHIP8_WINDOW_HEIGHT; j++)
-        e->screen[j] = 0;
+    e->pc += 2;
+    clear_display_buffer(e->screen);
 }
 
 /*
@@ -54,7 +54,7 @@ void exec_jmp_nnn(chip8_engine_t *e, const instruction_t *i)
  */
 void exec_call(chip8_engine_t *e, const instruction_t *i)
 {
-    e->stack[++e->sp] = e->pc;
+    e->stack[++e->sp] = e->pc + 2;
     e->pc = i->nnn;
 }
 
@@ -215,27 +215,6 @@ void exec_xor(chip8_engine_t *e, const instruction_t *i)
         return;
 
     e->v[i->x] ^= e->v[i->y];
-}
-
-static const char bit_to_char[2] = {
-        '0',
-        '1'
-};
-
-static void print_bin(uint8_t v)
-{
-    for (int i = 0; i < 8; i ++)
-        printf("%c", bit_to_char[(v >> i & 1)]);
-
-    printf("\n");
-}
-
-static void print_bin_s(uint16_t v)
-{
-    for (int i = 0; i < 16; i ++)
-        printf("%c", bit_to_char[(v >> i & 1)]);
-
-    printf("\n");
 }
 
 /*
@@ -411,19 +390,23 @@ void exec_disp(chip8_engine_t *e, const instruction_t *i)
 
     uint8_t x = e->v[i->x];
     uint8_t y = e->v[i->y];
+    e->v[0xf] = 0;
 
     for (uint8_t j = 0; j < i->n; j++) {
         uint8_t pixels = e->memory[e->i + j];
 
         for (uint8_t k = 0; k < 8; k++) {
+            uint8_t x_incr = (x + (7 - k)) % CHIP8_WINDOW_WIDTH;
+            uint8_t y_incr = (y + j) % CHIP8_WINDOW_HEIGHT;
             uint8_t sprite_pixel = pixels >> k & 1;
-            uint8_t index = (y + j) % CHIP8_WINDOW_HEIGHT;
-            uint8_t shift = (x + k) % CHIP8_WINDOW_WIDTH;
-            uint8_t screen_pixel = e->screen[index] >> shift & 1;
+            uint8_t screen_pixel = get_pixel(e->screen, x_incr, y_incr);
 
             e->v[0xf] = sprite_pixel && screen_pixel;
 
-            e->screen[index] |= ((uint64_t)sprite_pixel) << shift;
+            if (sprite_pixel)
+                sprite_pixel = 0xff;
+
+            draw_pixel(e->screen, x_incr, y_incr, screen_pixel ^ sprite_pixel);
         }
     }
 }
@@ -438,6 +421,14 @@ void exec_disp(chip8_engine_t *e, const instruction_t *i)
 void exec_skip_key(chip8_engine_t *e, const instruction_t *i)
 {
     e->pc += 2;
+
+    if (is_v_reg_out_of_bound(i->x))
+        return;
+
+    int x = e->v[i->x];
+
+    if (x < KEY_SIZE && e->keyboard[x])
+        e->pc += 2;
 }
 
 /*
@@ -450,6 +441,14 @@ void exec_skip_key(chip8_engine_t *e, const instruction_t *i)
 void exec_skipn_key(chip8_engine_t *e, const instruction_t *i)
 {
     e->pc += 2;
+
+    if (is_v_reg_out_of_bound(i->x))
+        return;
+
+    int x = e->v[i->x];
+
+    if (x < KEY_SIZE && !e->keyboard[x])
+        e->pc += 2;
 }
 
 /*
@@ -474,9 +473,21 @@ void exec_mov_x_delay(chip8_engine_t *e, const instruction_t *i)
  *
  * All execution stops until a key is pressed, then the value of that key is stored in Vx.
  */
+
 void exec_mov_key(chip8_engine_t *e, const instruction_t *i)
 {
-    e->pc += 2;
+    if (is_v_reg_out_of_bound(i->x)) {
+        e->pc += 2;
+        return;
+    }
+
+    for (int j = 0; j < KEY_SIZE; j++) {
+        if (e->keyboard[j]) {
+            e->v[i->x] = j;
+            e->pc += 2;
+            break;
+        }
+    }
 }
 
 /*
@@ -537,6 +548,11 @@ void exec_add_i_x(chip8_engine_t *e, const instruction_t *i)
 void exec_sprite_pos(chip8_engine_t *e, const instruction_t *i)
 {
     e->pc += 2;
+
+    if (is_v_reg_out_of_bound(i->x))
+        return;
+
+    e->i = e->v[i->x] * 5;
 }
 
 /*
@@ -598,5 +614,6 @@ void exec_movm_x_i(chip8_engine_t *e, const instruction_t *i)
 
 void exec_unknown(chip8_engine_t *e, const instruction_t *i)
 {
+    (void)i;
     e->pc += 2;
 }

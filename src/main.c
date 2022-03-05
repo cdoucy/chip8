@@ -8,12 +8,10 @@
 #include "utils.h"
 #include "chip8_engine.h"
 
-#define WINDOW_SCALE 12
-
-#define WINDOW_WIDTH    (CHIP8_WINDOW_WIDTH  *  WINDOW_SCALE)
-#define WINDOW_HEIGHT   (CHIP8_WINDOW_HEIGHT *  WINDOW_SCALE)
-
 #define COMMANDS_SIZE (2)
+
+#define MAX_SCREEN_FPS              180
+#define MAX_SCREEN_TICKS_PER_FRAME  (1000 / MAX_SCREEN_FPS)
 
 typedef enum command {
     DISAS,
@@ -21,11 +19,23 @@ typedef enum command {
     UNKNOWN
 } command_t;
 
+typedef uint32_t sdl_clock_t;
+
 static const char *commands[COMMANDS_SIZE + 1] = {
         "disas",
         "interpret",
         NULL
 };
+
+static void reset_sdl_clock(sdl_clock_t *clock)
+{
+    *clock = SDL_GetTicks();
+}
+
+static sdl_clock_t get_elapsed(const sdl_clock_t *clock)
+{
+    return SDL_GetTicks() - (*clock);
+}
 
 static int usage(const char *prog_name, bool is_error)
 {
@@ -58,39 +68,44 @@ static int disassemble(int ac, const char **av)
     return 0;
 }
 
-static void draw_points(SDL_Renderer *renderer, int x, int y, int scale)
+/*
+ *   1 2 3 4
+ *   A Z E R
+ *   Q S D F
+ *   W X C V
+ */
+static const SDL_Keycode chip8_key_to_sdl_key[KEY_SIZE] = {
+        SDLK_x, // 0x0
+        SDLK_1, // 0x1
+        SDLK_2, // 0x2
+        SDLK_3, // 0x3
+        SDLK_a, // 0x4
+        SDLK_z, // 0x5
+        SDLK_e, // 0x6
+        SDLK_q, // 0x7
+        SDLK_s, // 0x8
+        SDLK_d, // 0x9
+        SDLK_w, // 0xa
+        SDLK_c, // 0xb
+        SDLK_4, // 0xc
+        SDLK_r, // 0xd
+        SDLK_f, // 0xe
+        SDLK_v  // 0xf
+};
+
+static uint8_t handle_keyboard_input(const SDL_Event *ev)
 {
-    int x_scale = x * scale;
-    int y_scale = y * scale;
+    for (uint8_t i = 0; i < KEY_SIZE; i++)
+        if (ev->key.keysym.sym == chip8_key_to_sdl_key[i])
+            return i;
 
-    for (int i = y_scale - scale; i < y_scale; i++)
-        for (int j = x_scale - scale; j < x_scale; j++)
-            SDL_RenderDrawPoint(renderer, j, i);
-}
-
-static void update_window(chip8_engine_t *engine, SDL_Renderer *renderer, int scale)
-{
-    update_chip8_engine(engine);
-
-    SDL_RenderClear(renderer);
-
-    SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
-
-    for (uint8_t i = 0; i < CHIP8_WINDOW_HEIGHT; i++) {
-        for (uint8_t j = 0; j < CHIP8_WINDOW_WIDTH; j++) {
-            if (!(engine->screen[i] >> j & 1))
-                continue;
-
-            draw_points(renderer, j, i, scale);
-        }
-    }
-
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
-    SDL_RenderPresent(renderer);
+    return KEY_SIZE;
 }
 
 static int interpret(int ac, const char **av)
 {
+    (void)ac;
+
     chip8_engine_t engine;
     bool error = false;
 
@@ -105,25 +120,76 @@ static int interpret(int ac, const char **av)
     SDL_Event event;
     SDL_Renderer *renderer;
     SDL_Window *window;
+    SDL_Texture *texture;
 
     if (SDL_Init(SDL_INIT_VIDEO))
         return 1;
 
-    if (SDL_CreateWindowAndRenderer(WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer))
+    window = SDL_CreateWindow("Chip8", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
+
+    if (!window)
         return 1;
+
+    if (!(renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED)))
+        return 1;
+
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB332, SDL_TEXTUREACCESS_STATIC, WINDOW_WIDTH, WINDOW_HEIGHT);
+    if (!texture)
+        return 1;
+
+    sdl_clock_t framerate_clock;
+    sdl_clock_t cap_clock;
+
+    int frame_counter = 0;
+
+    reset_sdl_clock(&framerate_clock);
 
     bool running = true;
 
     while (running) {
+        reset_sdl_clock(&cap_clock);
+
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = false;
                 break;
             }
+
+            bool is_key_pressed = event.type == SDL_KEYDOWN;
+            if (is_key_pressed || event.type == SDL_KEYUP) {
+                uint8_t key = handle_keyboard_input(&event);
+                if (key < KEY_SIZE)
+                    engine.keyboard[key] = is_key_pressed;
+            }
         }
-        update_window(&engine, renderer, WINDOW_SCALE);
+
+        update_chip8_engine(&engine);
+
+        if (SDL_UpdateTexture(texture, NULL, engine.screen, WINDOW_WIDTH * sizeof(uint8_t)))
+            return 1;
+
+        if (SDL_RenderClear(renderer))
+            return 1;
+        if (SDL_RenderCopy(renderer, texture, NULL, NULL))
+            return 1;
+        SDL_RenderPresent(renderer);
+
+        float avg_fps = ((float)frame_counter) / (((float)get_elapsed(&framerate_clock)) / 1000.f);
+
+        if (avg_fps > 2000000)
+            avg_fps = 0;
+
+        printf("average fps = %f\n", avg_fps);
+
+        frame_counter++;
+
+        uint32_t frame_ticks = get_elapsed(&cap_clock);
+        if (frame_ticks < MAX_SCREEN_TICKS_PER_FRAME)
+            SDL_Delay(MAX_SCREEN_TICKS_PER_FRAME - frame_ticks);
+
     }
 
+    SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

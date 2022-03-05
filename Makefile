@@ -5,7 +5,9 @@ SRC			=	src/main.c						\
 				src/op_codes.c					\
 				src/chip8_engine.c				\
 				src/utils.c						\
-				src/instructions_executors.c
+				src/instructions_executors.c	\
+				src/display_buffer.c			\
+				src/clock.c
 
 CC			=	gcc
 
