@@ -40,4 +40,13 @@ re: fclean all
 debug: CPPFLAGS += -g3
 debug: re
 
+wasm:
+	emcc $(SRC) \
+	-I./inc/	\
+	-O3			\
+	-s WASM=1 \
+	-s USE_SDL=2 \
+	--embed-file Pong.ch8 \
+	-o index.js
+
 .PHONY: all clean fclean re build debug

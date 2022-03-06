@@ -106,14 +106,6 @@ void update_chip8_engine(chip8_engine_t *e, bool disas)
     instructions_executors[i.op_code](e, &i);
 }
 
-void run_chip8_engine(chip8_engine_t *e)
-{
-    uint16_t prog_end = e->prog_size + e->pc;
-
-    for (; e->pc < prog_end && e->pc < MEMORY_SIZE;)
-        update_chip8_engine(e, false);
-}
-
 void chip8_dump_registers(const chip8_engine_t *e) {
     for (int i = 0; i < 16; i += 4) {
         for (int j = i; j < i + 4; j++) {

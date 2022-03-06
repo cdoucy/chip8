@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <time.h>
 
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
+
 #include "disas.h"
 #include "utils.h"
 #include "display.h"
@@ -14,8 +18,6 @@ typedef enum command {
     INTERPRET,
     UNKNOWN_COMMAND
 } command_t;
-
-typedef uint32_t sdl_clock_t;
 
 static const char *commands[COMMANDS_SIZE + 1] = {
         "disas",
@@ -105,8 +107,72 @@ static int interpret(int ac, const char **av)
     return exit_code;
 }
 
+#ifdef EMSCRIPTEN
+typedef struct core
+{
+    chip8_engine_t *engine;
+    display_t *display;
+} core_t;
+
+void main_loop(void *arg)
+{
+    core_t *core = (core_t *)arg;
+    int exit_code;
+    chip8_engine_t *engine = core->engine;
+    display_t *display = core->display;
+    display_event_t ev = {KEY_SIZE, false};
+
+    if (!poll_event(display, &ev))
+        return;
+
+    if (ev.key < KEY_SIZE) engine->keyboard[ev.key] = ev.key_pressed;
+
+    update_chip8_engine(engine, true);
+
+    if (engine->draw_flag) {
+        exit_code = render(display, &engine->screen);
+        printf("exit_code = %d\n", exit_code);
+        engine->draw_flag = false;
+    }
+}
+
+static int wasm_run()
+{
+    display_t display;
+    chip8_engine_t engine;
+    core_t core = {
+            &engine,
+            &display
+    };
+
+    init_chip8_engine(core.engine);
+
+    if (load_file_to_memory("./Pong.ch8", core.engine->memory + INITIAL_PROGRAM_COUNTER, &core.engine->prog_size, MAX_PROG_SIZE)) {
+        return 1;
+    }
+    printf("OK\n");
+
+    srandom(time(NULL));
+
+    if (init_display(core.display, false))
+        return 1;
+
+    srandom(time(NULL));
+
+    emscripten_set_main_loop_arg(&main_loop, &core, -1, 1);
+
+    destroy_display(core.display);
+
+    return 0;
+}
+#endif
+
 int main(int ac, const char **av)
 {
+#ifdef EMSCRIPTEN
+    return wasm_run();
+#endif
+
     command_t cmd = UNKNOWN_COMMAND;
 
     if (ac < 3)

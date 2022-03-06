@@ -11,8 +11,8 @@ struct display_s {
     SDL_Window      *window;
     SDL_Renderer    *renderer;
     SDL_Texture     *texture;
-    chip8_clock_t    framerate_clock;
-    chip8_clock_t    cap_clock;
+    chip8_clock_t   framerate_clock;
+    chip8_clock_t   cap_clock;
     int             frame_counter;
     bool            log_framerate;
 };

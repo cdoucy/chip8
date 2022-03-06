@@ -16,7 +16,7 @@
 #define KEY_SIZE                    16
 #define FREQUENCY                   60
 
-#define WINDOW_SCALE 15
+#define WINDOW_SCALE 10
 
 #define WINDOW_WIDTH    (CHIP8_WINDOW_WIDTH  *  WINDOW_SCALE)
 #define WINDOW_HEIGHT   (CHIP8_WINDOW_HEIGHT *  WINDOW_SCALE)
@@ -56,7 +56,6 @@ struct chip8_engine_s {
 void init_chip8_engine(chip8_engine_t *engine);
 void chip8_check_counters(chip8_engine_t *e);
 void update_chip8_engine(chip8_engine_t *e, bool disas);
-void run_chip8_engine(chip8_engine_t *engine);
 void chip8_dump_registers(const chip8_engine_t *e);
 
 void clear_display_buffer(display_buffer_t buf);

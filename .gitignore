@@ -53,3 +53,5 @@ dkms.conf
 
 .idea/
 chip8
+index.js
+index.wasm
